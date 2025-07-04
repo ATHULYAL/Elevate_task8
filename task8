@@ -1,0 +1,94 @@
+mysql> DELIMITER $$
+mysql>
+mysql> CREATE PROCEDURE ClaimFoundItem(
+    ->     IN in_user_id INT,
+    ->     IN in_found_id INT
+    -> )
+    -> BEGIN
+    ->     DECLARE item_claimed BOOLEAN;
+    ->
+    ->     -- Check if item is already claimed
+    ->     SELECT is_claimed INTO item_claimed
+    ->     FROM Found_Items
+    ->     WHERE found_id = in_found_id;
+    ->
+    ->     IF item_claimed = FALSE THEN
+    ->         -- Insert claim request
+    ->         INSERT INTO Claims (user_id, found_id, claim_date, status)
+    ->         VALUES (in_user_id, in_found_id, CURDATE(), 'pending');
+    ->
+    ->         -- Mark item as claimed
+    ->         UPDATE Found_Items
+    ->         SET is_claimed = TRUE
+    ->         WHERE found_id = in_found_id;
+    ->     ELSE
+    ->         SIGNAL SQLSTATE '45000'
+    ->         SET MESSAGE_TEXT = 'Item has already been claimed.';
+    ->     END IF;
+    -> END$$
+ERROR 1046 (3D000): No database selected
+mysql>
+mysql> DELIMITER ;
+mysql> use lost_found
+Database changed
+mysql> DELIMITER $$
+mysql>
+mysql> CREATE PROCEDURE ClaimFoundItem(
+    ->     IN in_user_id INT,
+    ->     IN in_found_id INT
+    -> )
+    -> BEGIN
+    ->     DECLARE item_claimed BOOLEAN;
+    ->
+    ->     -- Check if item is already claimed
+    ->     SELECT is_claimed INTO item_claimed
+    ->     FROM Found_Items
+    ->     WHERE found_id = in_found_id;
+    ->
+    ->     IF item_claimed = FALSE THEN
+    ->         -- Insert claim request
+    ->         INSERT INTO Claims (user_id, found_id, claim_date, status)
+    ->         VALUES (in_user_id, in_found_id, CURDATE(), 'pending');
+    ->
+    ->         -- Mark item as claimed
+    ->         UPDATE Found_Items
+    ->         SET is_claimed = TRUE
+    ->         WHERE found_id = in_found_id;
+    ->     ELSE
+    ->         SIGNAL SQLSTATE '45000'
+    ->         SET MESSAGE_TEXT = 'Item has already been claimed.';
+    ->     END IF;
+    -> END$$
+Query OK, 0 rows affected (0.06 sec)
+
+mysql>
+mysql> DELIMITER ;
+mysql> CALL ClaimFoundItem(3, 12);
+ERROR 1644 (45000): Item has already been claimed.
+mysql> CALL ClaimFoundItem(3, 11);
+ERROR 1644 (45000): Item has already been claimed.
+mysql> DELIMITER $$
+mysql>
+mysql> CREATE FUNCTION CountUserLostItems(in_user_id INT)
+    -> RETURNS INT
+    -> DETERMINISTIC
+    -> BEGIN
+    ->     DECLARE lost_count INT;
+    ->
+    ->     SELECT COUNT(*) INTO lost_count
+    ->     FROM Lost_Items
+    ->     WHERE user_id = in_user_id;
+    ->
+    ->     RETURN lost_count;
+    -> END$$
+Query OK, 0 rows affected (0.01 sec)
+
+mysql>
+mysql> DELIMITER ;
+mysql> SELECT CountUserLostItems(3);
++-----------------------+
+| CountUserLostItems(3) |
++-----------------------+
+|                     1 |
++-----------------------+
+1 row in set (0.01 sec)
